@@ -232,8 +232,12 @@ static class Commands
         if (!Directory.Exists(paths.Core))
         {
             Console.WriteLine($"There's no {paths.Show(paths.Core)}/ yet. Run sq init first.");
-            if (ci) Report.WriteCi(paths, [], buildFailed: true);
-            return 1;
+            if (!ci) return 1;
+            // A repository straight from "Use this template" (and the template itself) has no Unity project yet.
+            // That's "not started", like an empty lab template, not a red build.
+            Console.WriteLine("Every session counts as not started until then.");
+            Report.WriteCi(paths, [], buildFailed: false);
+            return 0;
         }
         foreach (var warning in Checks.Setup(paths)) Console.WriteLine($"! {warning}");
         RefreshManaged(paths, quiet: true);

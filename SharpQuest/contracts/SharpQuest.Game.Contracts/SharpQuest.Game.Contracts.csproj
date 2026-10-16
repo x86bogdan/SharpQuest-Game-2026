@@ -18,6 +18,10 @@
       <_Parameter2>$(GameCoreDir)</_Parameter2>
     </AssemblyAttribute>
     <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+      <_Parameter1>GameTestsDir</_Parameter1>
+      <_Parameter2>$(GameTestsDir)</_Parameter2>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
       <_Parameter1>GameContentDir</_Parameter1>
       <_Parameter2>$(GameContentDir)</_Parameter2>
     </AssemblyAttribute>

@@ -12,7 +12,8 @@
 // MANAGED FILE: `sq update` and CI replace it with the official copy.
 //
 // Same family as the labs' sq.cs; what differs: init, the paths (a Unity project next to SharpQuest/),
-// the build hints, and no reference solutions, catch-up kits, mutation step or upload.
+// the build hints, and no reference solutions, catch-up kits or upload. The mutation step (session 3) is
+// the labs' one, pointed at your NUnit tests.
 
 using System.Diagnostics;
 using System.IO.Compression;
@@ -242,6 +243,9 @@ static class Commands
         foreach (var warning in Checks.Setup(paths)) Console.WriteLine($"! {warning}");
         RefreshManaged(paths, quiet: true);
 
+        // Session 3 grades YOUR tests: first they run against deliberately broken code.
+        Mutation.RunAll(paths, ci, session is null ? null : int.Parse(session).ToString("D2"));
+
         var projects = new List<string> { ContractTests };
         if (Directory.Exists(paths.Tests) && Directory.EnumerateFiles(paths.Tests, "*.cs", SearchOption.AllDirectories).Any())
             projects.Add(OwnTests);
@@ -385,10 +389,14 @@ static class Commands
     public static int Run(string workingDir, string file, IEnumerable<string> arguments, bool quiet = false) =>
         RunCapture(workingDir, file, arguments, quiet).ExitCode;
 
-    public static (int ExitCode, string Output) RunCapture(string workingDir, string file, IEnumerable<string> arguments, bool quiet = true)
+    public static (int ExitCode, string Output) RunCapture(string workingDir, string file, IEnumerable<string> arguments, bool quiet = true,
+                                                           IDictionary<string, string?>? env = null)
     {
         var psi = new ProcessStartInfo(file) { WorkingDirectory = workingDir, RedirectStandardOutput = quiet, RedirectStandardError = quiet };
         foreach (var a in arguments) psi.ArgumentList.Add(a);
+        foreach (var name in Mutation.EnvNames) psi.Environment.Remove(name);   // never let a mutant leak into a normal run
+        foreach (var (k, v) in env ?? new Dictionary<string, string?>())
+            if (v is null) psi.Environment.Remove(k); else psi.Environment[k] = v;
         using var process = Process.Start(psi)!;
         if (!quiet) { process.WaitForExit(); return (process.ExitCode, ""); }
         var o = process.StandardOutput.ReadToEndAsync();
@@ -398,6 +406,7 @@ static class Commands
     }
 
     internal static string CoreProject => CoreBuild;
+    internal static string OwnTestsProject => OwnTests;
 }
 
 /// <summary>Setup problems worth saying before a build: they explain a red row better than the row does.</summary>
@@ -492,7 +501,153 @@ static class Hints
         Regex.Replace(line, @"\s*\[[^\]]+\.csproj\]$", "").Replace(paths.Repo + Path.DirectorySeparatorChar, "");
 }
 
-record TestResult(string Group, string Name, bool Passed, bool Skipped, string? Message);
+record TestResult(string Group, string Name, bool Passed, bool Skipped, string? Message, string Class = "");
+
+/// <summary>
+/// Mutation testing: session 3 grades YOUR tests by running them against deliberately broken code.
+/// A session opts in with contracts/**/mutation.json:
+///   { "session": "03", "project": "build/Tests/Game.Tests.Build.csproj",
+///     "classFilter": "SearchMatcher", "env": "SQ_MUTANT", "mutants": 8 }
+/// Run 0: all of your tests, correct code. Runs 1..N: only the classes whose name contains the filter, one mutant each.
+/// Results go to SharpQuest/.sq/mutation/SNN.json, which that session's contract tests read. Written on every
+/// run once the session is released (even with no tests yet), so CI never mistakes "no tests" for "not run".
+/// </summary>
+static class Mutation
+{
+    public static IEnumerable<string> EnvNames => ["SQ_MUTANT"];
+
+    public static void RunAll(Paths paths, bool ci, string? onlySession)
+    {
+        var contracts = Path.Combine(paths.Sq, "contracts");
+        if (!Directory.Exists(contracts)) return;
+        var specs = Directory.EnumerateFiles(contracts, "mutation.json", SearchOption.AllDirectories)
+            .Select(f => JsonNode.Parse(File.ReadAllText(f))!)
+            .Where(s => onlySession is null || (string?)s["session"] == onlySession)
+            .ToList();
+        foreach (var spec in specs) RunOne(paths, ci ? "Release" : "Debug", spec);
+    }
+
+    private static void RunOne(Paths paths, string config, JsonNode spec)
+    {
+        var sq = paths.Sq;
+        var session = (string)spec["session"]!;
+        var project = (string)spec["project"]!;
+        var filter = (string)spec["classFilter"]!;
+        var envName = (string)spec["env"]!;
+        var count = (int)spec["mutants"]!;
+        var outDir = Path.Combine(sq, ".sq", "mutation");
+        Directory.CreateDirectory(outDir);
+        var outFile = Path.Combine(outDir, $"S{session}.json");
+
+        var result = new JsonObject
+        {
+            ["session"] = session, ["key"] = "", ["testAssembly"] = null, ["buildFailed"] = false,
+            ["ownTotal"] = 0, ["ownFailed"] = 0, ["specTotal"] = 0, ["specFailed"] = 0,
+        };
+        JsonObject NotRun()
+        {
+            var none = new JsonObject();
+            for (var m = 1; m <= count; m++) none[m.ToString()] = new JsonObject { ["caught"] = false, ["ran"] = false };
+            return none;
+        }
+
+        var hasTests = Directory.Exists(paths.Tests) && Directory.EnumerateFiles(paths.Tests, "*.cs", SearchOption.AllDirectories).Any();
+        if (!hasTests)
+        {
+            result["mutants"] = NotRun();
+            Write(outFile, result);
+            return;
+        }
+
+        Console.WriteLine($"> dotnet build {project} -c {config}   (needed for the session {session} mutation check)");
+        if (Commands.RunCapture(sq, Commands.Dotnet, ["build", project, "-c", config, "-nologo", "-v", "q"]).ExitCode != 0)
+        {
+            result["buildFailed"] = true;   // the main test run shows the build errors
+            result["mutants"] = NotRun();
+            Write(outFile, result);
+            return;
+        }
+
+        var projectDir = Path.GetDirectoryName(Path.Combine(sq, project))!;
+        var binDir = Path.Combine(projectDir, "bin", config);
+        var dll = Directory.Exists(binDir)
+            ? Directory.EnumerateFiles(binDir, "Game.Core.Tests.dll", SearchOption.AllDirectories).OrderByDescending(File.GetLastWriteTimeUtc).FirstOrDefault()
+            : null;
+        result["testAssembly"] = dll;
+
+        // Same binaries as last time → same answer. Mutation runs are slow; don't repeat them.
+        var key = dll is null ? "" : BinariesKey(Path.GetDirectoryName(dll)!, spec.ToJsonString());
+        if (File.Exists(outFile) && key.Length > 0 && (string?)JsonNode.Parse(File.ReadAllText(outFile))?["key"] == key)
+        {
+            PrintSummary(session, JsonNode.Parse(File.ReadAllText(outFile))!, cached: true);
+            return;
+        }
+        result["key"] = key;
+
+        var work = Path.Combine(outDir, $"S{session}-runs");
+        if (Directory.Exists(work)) Directory.Delete(work, recursive: true);
+
+        List<TestResult> RunTests(int mutant, bool onlySpec)
+        {
+            var dir = Path.Combine(work, mutant.ToString());
+            var args = new List<string> { "test", project, "--no-build", "-c", config, "--logger", "trx", "--results-directory", dir };
+            if (onlySpec) args.AddRange(["--filter", $"FullyQualifiedName~{filter}"]);
+            Commands.RunCapture(sq, Commands.Dotnet, args, env: new Dictionary<string, string?> { [envName] = mutant == 0 ? null : mutant.ToString() });
+            return Trx.ReadAll(dir);
+        }
+
+        bool IsSpec(TestResult r) => r.Class.Split('.')[^1].Contains(filter, StringComparison.OrdinalIgnoreCase);
+
+        Console.WriteLine($"  S{session}: running your tests against {count} broken versions ...");
+        var baseline = RunTests(0, onlySpec: false);
+        var specTests = baseline.Where(IsSpec).ToList();
+        result["ownTotal"] = baseline.Count(r => !r.Skipped);
+        result["ownFailed"] = baseline.Count(r => !r.Passed && !r.Skipped);
+        result["specTotal"] = specTests.Count(r => !r.Skipped);
+        result["specFailed"] = specTests.Count(r => !r.Passed && !r.Skipped);
+
+        var mutants = new JsonObject();
+        var usable = specTests.Count > 0 && specTests.All(r => r.Passed || r.Skipped);
+        for (var m = 1; m <= count; m++)
+        {
+            if (!usable) { mutants[m.ToString()] = new JsonObject { ["caught"] = false, ["ran"] = false }; continue; }
+            var run = RunTests(m, onlySpec: true);
+            // A crashed run (no results at all) also counts as caught: the tests noticed something.
+            var caught = run.Count == 0 || run.Any(r => !r.Passed && !r.Skipped);
+            mutants[m.ToString()] = new JsonObject { ["caught"] = caught, ["ran"] = true };
+        }
+        result["mutants"] = mutants;
+        Write(outFile, result);
+        PrintSummary(session, result, cached: false);
+    }
+
+    private static void Write(string file, JsonObject result) =>
+        File.WriteAllText(file, result.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));
+
+    /// <summary>Hash of the compiled code that matters (builds are deterministic, so unchanged source = same key).</summary>
+    private static string BinariesKey(string binDir, string specText)
+    {
+        using var sha = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+        sha.AppendData(Encoding.UTF8.GetBytes(specText));
+        foreach (var f in Directory.EnumerateFiles(binDir, "*.dll").Order(StringComparer.Ordinal))
+        {
+            var name = Path.GetFileName(f);
+            if (!name.StartsWith("Game.")) continue;
+            sha.AppendData(Encoding.UTF8.GetBytes(name));
+            sha.AppendData(File.ReadAllBytes(f));
+        }
+        return Convert.ToHexString(sha.GetHashAndReset()).ToLowerInvariant()[..16];
+    }
+
+    private static void PrintSummary(string session, JsonNode r, bool cached)
+    {
+        var m = r["mutants"]!.AsObject();
+        var caught = m.Count(x => (bool?)x.Value?["caught"] == true);
+        var note = (int?)r["specTotal"] == 0 ? " (no SearchMatcher tests found yet)"
+                 : (int?)r["specFailed"] > 0 ? " (your SearchMatcher tests must pass on the correct code first)" : "";
+        Console.WriteLine($"  S{session}: broken versions caught {caught}/{m.Count}{note}{(cached ? "  [unchanged since last run]" : "")}");
+    }
+}
 
 static class Trx
 {
@@ -516,8 +671,8 @@ static class Trx
             var className = classes.GetValueOrDefault((string)r.Attribute("testId")!, "");
             var outcome = (string?)r.Attribute("outcome") ?? "";
             var message = r.Element(Ns + "Output")?.Element(Ns + "ErrorInfo")?.Element(Ns + "Message")?.Value;
-            yield return new TestResult(Group(className), ShortName((string?)r.Attribute("testName") ?? "?"),
-                outcome == "Passed", outcome == "NotExecuted", message);
+            yield return new TestResult(Group(className), ShortName((string?)r.Attribute("testName") ?? "?", className),
+                outcome == "Passed", outcome == "NotExecuted", message, className);
         }
     }
 
@@ -528,10 +683,12 @@ static class Trx
         return m.Success ? m.Groups[1].Value : "own";
     }
 
-    private static string ShortName(string testName)
+    private static string ShortName(string testName, string className)
     {
         var paren = testName.IndexOf('(');
         var head = paren < 0 ? testName : testName[..paren];
+        // xUnit names a test "Namespace.Class.Method"; NUnit only "Method", with the class in className.
+        if (!head.Contains('.') && className.Length > 0) head = $"{className}.{head}";
         var parts = head.Split('.');
         var shortHead = parts.Length >= 2 ? $"{parts[^2]}.{parts[^1]}" : head;
         return paren < 0 ? shortHead : shortHead + testName[paren..];

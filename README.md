@@ -56,6 +56,8 @@ git commit + push         # the CI run on GitHub is the record your score is rea
 
 `sq test 04` runs only session 4's checks. A session shows as *not started* until `SharpQuest/Wiring/` has a class for it.
 
+From session 3 on, `sq test` first runs your own tests against eight deliberately broken versions of `SearchMatcher` (session 3's search rule, which `sq` puts in `Assets/Game/Core/SharpQuest/`). That's how your tests are graded: by what they catch. It takes a little longer, and only reruns when your code changed.
+
 ## The wiring
 
 Each session gives you a base class to derive from, naming **your** type. Session 2, for a tower defence:

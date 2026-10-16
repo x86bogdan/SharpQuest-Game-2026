@@ -1,0 +1,7 @@
+{
+  "session": "03",
+  "project": "build/Tests/Game.Tests.Build.csproj",
+  "classFilter": "SearchMatcher",
+  "env": "SQ_MUTANT",
+  "mutants": 8
+}

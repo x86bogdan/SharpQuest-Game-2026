@@ -19,6 +19,9 @@ public static class GameFiles
     /// <summary>Your rules: Assets/Game/Core/, unless game.props says otherwise.</summary>
     public static string CoreDirectory => Setting("GameCoreDir");
 
+    /// <summary>Your own tests: Assets/Game/Tests/Core/, unless game.props says otherwise.</summary>
+    public static string TestsDirectory => Setting("GameTestsDir");
+
     /// <summary>Your content: Assets/Game/Content/, unless game.props says otherwise.</summary>
     public static string ContentDirectory => Setting("GameContentDir");
 

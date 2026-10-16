@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    MANAGED FILE: `sq update` and CI replace it with the official copy.
+
+    Runs YOUR tests - every .cs file under Assets/Game/Tests/Core/ - outside Unity. They are ordinary
+    NUnit tests, so the same files also run in Unity's Test Runner (Window > General > Test Runner > EditMode).
+    Keep them plain: [Test], [TestCase], Assert.AreEqual / Assert.That / Assert.Throws. Nothing from UnityEngine.
+  -->
+  <PropertyGroup>
+    <LangVersion>9.0</LangVersion>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <AssemblyName>Game.Core.Tests</AssemblyName>
+    <RootNamespace />
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(GameTestsDir)/**/*.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="NUnit" />
+    <PackageReference Include="NUnit3TestAdapter" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="Newtonsoft.Json" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Core/Game.Core.Build.csproj" />
+  </ItemGroup>
+</Project>

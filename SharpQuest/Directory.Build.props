@@ -1,0 +1,39 @@
+<!--
+  Settings shared by every project under SharpQuest/.
+  MANAGED FILE: `sq update` and CI replace it with the official copy.
+
+  It lives in SharpQuest/, not at the top of the repository, on purpose: MSBuild looks for this file in
+  every folder above a project, and the project files Unity generates for your IDE (next to your Unity
+  project) must never pick these settings up.
+-->
+<Project>
+  <!-- Where your Unity project is. Yours to change: SharpQuest/game.props. -->
+  <Import Project="$(MSBuildThisFileDirectory)game.props" Condition="Exists('$(MSBuildThisFileDirectory)game.props')" />
+
+  <PropertyGroup>
+    <GameProject Condition="'$(GameProject)' == ''">../Game</GameProject>
+    <GameEngine Condition="'$(GameEngine)' == ''">Unity</GameEngine>
+    <GameCore Condition="'$(GameCore)' == ''">Assets/Game/Core</GameCore>
+    <GameTests Condition="'$(GameTests)' == ''">Assets/Game/Tests/Core</GameTests>
+    <GameContent Condition="'$(GameContent)' == ''">Assets/Game/Content</GameContent>
+
+    <GameProjectDir>$([System.IO.Path]::GetFullPath($([System.IO.Path]::Combine('$(MSBuildThisFileDirectory)', '$(GameProject)'))))</GameProjectDir>
+    <GameCoreDir>$([System.IO.Path]::Combine('$(GameProjectDir)', '$(GameCore)'))</GameCoreDir>
+    <GameTestsDir>$([System.IO.Path]::Combine('$(GameProjectDir)', '$(GameTests)'))</GameTestsDir>
+    <GameContentDir>$([System.IO.Path]::Combine('$(GameProjectDir)', '$(GameContent)'))</GameContentDir>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <!--
+      The wiring and the course's tests run on .NET 9, like the labs. Your game's own code does NOT:
+      build/Core and build/Tests switch to what Unity uses (.NET Standard 2.1, C# 9, no implicit usings),
+      so code that builds here also compiles in Unity.
+    -->
+    <TargetFramework>net9.0</TargetFramework>
+    <LangVersion>13</LangVersion>
+    <RollForward>Major</RollForward>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <PublishAot>false</PublishAot>
+  </PropertyGroup>
+</Project>

@@ -1,0 +1,6 @@
+{
+  "upstream": "x86bogdan/sharpquest-game-2026",
+  "branch": "main",
+  "track": "game",
+  "unityVersion": "6000.6.6f1"
+}

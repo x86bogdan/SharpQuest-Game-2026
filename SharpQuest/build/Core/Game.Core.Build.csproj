@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    MANAGED FILE: `sq update` and CI replace it with the official copy.
+
+    Builds YOUR game's rules - every .cs file under your Unity project's Assets/Game/Core/ - outside Unity,
+    so the course's tests can run them. The files stay where they are: Unity compiles them too, as the
+    Game.Core assembly (Assets/Game/Core/Game.Core.asmdef).
+
+    The settings below are Unity's, so that what builds here also compiles in Unity:
+      .NET Standard 2.1   the library Unity's scripts compile against
+      C# 9                Unity's compiler (no file-scoped namespaces, no primary constructors, no collection expressions)
+      no implicit usings  Unity has none: write your own `using System;` lines
+  -->
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <LangVersion>9.0</LangVersion>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <AssemblyName>Game.Core</AssemblyName>
+    <RootNamespace />
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <IsPackable>false</IsPackable>
+    <Deterministic>true</Deterministic>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(GameCoreDir)/**/*.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" />
+  </ItemGroup>
+</Project>

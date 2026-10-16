@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    MANAGED FOLDER - do not edit anything under contracts/.
+    These are the tests that grade the Contract part of every session (40%).
+    Read them: they are the most precise statement of what each session asks for.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>SharpQuest.Game.Tests</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="xunit.v3" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../SharpQuest.Game.Contracts/SharpQuest.Game.Contracts.csproj" />
+    <ProjectReference Include="../../build/Core/Game.Core.Build.csproj" />
+    <ProjectReference Include="../../Wiring/SharpQuest.Game.Wiring.csproj" />
+  </ItemGroup>
+</Project>

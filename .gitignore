@@ -1,0 +1,10 @@
+# The SharpQuest side. Your Unity project has its own .gitignore (sq init writes it).
+SharpQuest/**/bin/
+SharpQuest/**/obj/
+SharpQuest/.sq/
+SharpQuest/score.json
+SharpQuest/test-results/
+.official/
+.vs/
+.idea/
+*.user

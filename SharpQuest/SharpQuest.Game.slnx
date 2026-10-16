@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/game/">
+    <Project Path="build/Core/Game.Core.Build.csproj" />
+    <Project Path="build/Tests/Game.Tests.Build.csproj" />
+  </Folder>
+  <Folder Name="/wiring/">
+    <Project Path="Wiring/SharpQuest.Game.Wiring.csproj" />
+  </Folder>
+  <Folder Name="/contracts/">
+    <Project Path="contracts/SharpQuest.Game.Contracts/SharpQuest.Game.Contracts.csproj" />
+    <Project Path="contracts/SharpQuest.Game.Contracts.Tests/SharpQuest.Game.Contracts.Tests.csproj" />
+  </Folder>
+</Solution>

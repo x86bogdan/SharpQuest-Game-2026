@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    YOUR wiring: one small class per session, telling the course's tests which of your types to look at.
+    It lives here, outside Unity, so nothing about the course ever ends up in your game. See README.md.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="../contracts/SharpQuest.Game.Contracts/SharpQuest.Game.Contracts.csproj" />
+    <ProjectReference Include="../build/Core/Game.Core.Build.csproj" />
+  </ItemGroup>
+</Project>

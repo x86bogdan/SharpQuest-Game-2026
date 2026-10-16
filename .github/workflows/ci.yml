@@ -1,0 +1,71 @@
+# SharpQuest checks, game track - MANAGED FILE, do not edit.
+#
+# Runs on every push. This is the RECORD, not the fast loop: iterate locally with `sq test`,
+# push when it's green. This run is what your Contract score is read from.
+#
+# It never opens Unity. It builds your Assets/Game/Core folder with the .NET SDK, runs your own
+# tests from Assets/Game/Tests/Core, and runs the course's tests through your wiring.
+# Before grading, it replaces the course's files with the official copies.
+
+name: SharpQuest checks
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  SQ_UPSTREAM: x86bogdan/sharpquest-game-2026   # filled in by publish-game.cs for each cohort
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  checks:
+    name: Build and test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out your repository
+        uses: actions/checkout@v7
+        with:
+          lfs: false   # art and sound aren't needed to grade the C#
+
+      - name: Check out the official course files
+        uses: actions/checkout@v7
+        with:
+          repository: ${{ env.SQ_UPSTREAM }}
+          path: .official
+
+      - name: Use the official contracts and settings
+        run: |
+          for d in contracts build unity tools; do
+            rm -rf "SharpQuest/$d"
+            cp -r ".official/SharpQuest/$d" "SharpQuest/$d"
+          done
+          for f in Directory.Build.props Directory.Build.targets Directory.Packages.props global.json sq.cs SharpQuest.Game.slnx; do
+            cp ".official/SharpQuest/$f" "SharpQuest/$f"
+          done
+          echo "Official files at $(git -C .official rev-parse --short HEAD)"
+          rm -rf .official
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: SharpQuest/global.json
+
+      - name: Build and test
+        run: dotnet run --project SharpQuest/tools/sq -- test --ci
+
+      - name: Keep the score
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: score
+          path: |
+            SharpQuest/score.json
+            SharpQuest/.sq/results/
+          if-no-files-found: warn
+          retention-days: 90

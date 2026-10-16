@@ -1,0 +1,26 @@
+<!--
+  MANAGED FILE: `sq update` and CI replace it with the official copy.
+  Every NuGet package version the game track needs, in one place.
+-->
+<Project>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+  <ItemGroup>
+    <!--
+      Your game's JSON library. In Unity it comes from the package com.unity.nuget.newtonsoft-json 3.2.1
+      (which sq init adds to Packages/manifest.json), built from Json.NET 13.0.2; 13.0.3 has the same API.
+    -->
+    <PackageVersion Include="Newtonsoft.Json" Version="13.0.3" />
+    <!-- The course's tests (the same pins as the labs). -->
+    <PackageVersion Include="xunit.v3" Version="3.2.2" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.9.0" />
+    <!--
+      YOUR tests are NUnit, because that is what Unity's Test Runner uses. NUnit 3, not 4: Unity ships an
+      NUnit 3 (3.5), and NUnit 4 moved Assert.AreEqual and friends to ClassicAssert.
+    -->
+    <PackageVersion Include="NUnit" Version="3.14.0" />
+    <PackageVersion Include="NUnit3TestAdapter" Version="5.0.0" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    MANAGED FOLDER - do not edit anything under contracts/.
+    `sq update` replaces it with the official copy, and CI does the same before grading.
+    One folder per released session: S02/, S04/, ...
+  -->
+  <PropertyGroup>
+    <RootNamespace>SharpQuest.Game.Contracts</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Where your game is, baked in at build time so GameFiles and the tests can find it. -->
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+      <_Parameter1>GameProjectDir</_Parameter1>
+      <_Parameter2>$(GameProjectDir)</_Parameter2>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+      <_Parameter1>GameCoreDir</_Parameter1>
+      <_Parameter2>$(GameCoreDir)</_Parameter2>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+      <_Parameter1>GameContentDir</_Parameter1>
+      <_Parameter2>$(GameContentDir)</_Parameter2>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+      <_Parameter1>GameEngine</_Parameter1>
+      <_Parameter2>$(GameEngine)</_Parameter2>
+    </AssemblyAttribute>
+  </ItemGroup>
+</Project>

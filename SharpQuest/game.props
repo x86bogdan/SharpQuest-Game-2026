@@ -1,0 +1,20 @@
+<!--
+  YOUR FILE: where your game is. `sq init` writes it; sq update never touches it.
+  Paths are relative to this folder (SharpQuest/).
+-->
+<Project>
+  <PropertyGroup>
+    <!-- Your Unity project: the folder that has Assets/ and ProjectSettings/ in it. -->
+    <GameProject>../Game</GameProject>
+
+    <!--
+      Change these only if you were told to (another engine, or folders you agreed on at checkpoint 1).
+      They are relative to GameProject.
+
+    <GameEngine>Unity</GameEngine>
+    <GameCore>Assets/Game/Core</GameCore>
+    <GameTests>Assets/Game/Tests/Core</GameTests>
+    <GameContent>Assets/Game/Content</GameContent>
+    -->
+  </PropertyGroup>
+</Project>
